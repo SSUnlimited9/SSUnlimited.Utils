@@ -17,15 +17,15 @@
 	<ItemGroup>
 		<Compile Include="Program.cs"/>
 	
-		<Compile Include="SSUnlimited.Utils\BigDecimal.cs" />
-		<Compile Include="SSUnlimited.Utils\BigDecimalFormatter.cs" />
-		<Compile Include="SSUnlimited.Utils\BigVectorInt.cs" />
-		<Compile Include="SSUnlimited.Utils\Extensions\DictionaryExtensions.cs" />
-		<Compile Include="SSUnlimited.Utils\Extensions\ListExtensions.cs" />
-		<Compile Include="SSUnlimited.Utils\Infinity.cs" />
-		<Compile Include="SSUnlimited.Utils\IRandom.cs" />
-		<Compile Include="SSUnlimited.Utils\SMath.cs" />
-		<Compile Include="SSUnlimited.Utils\SUtils.cs" />
+		<Compile Include="BigDecimal.cs" />
+		<Compile Include="BigDecimalFormatter.cs" />
+		<Compile Include="BigVectorInt.cs" />
+		<Compile Include="Extensions\DictionaryExtensions.cs" />
+		<Compile Include="Extensions\ListExtensions.cs" />
+		<Compile Include="Infinity.cs" />
+		<Compile Include="IRandom.cs" />
+		<Compile Include="SMath.cs" />
+		<Compile Include="SUtils.cs" />
 	</ItemGroup>
 	
 </Project>

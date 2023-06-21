@@ -295,6 +295,8 @@ namespace System.Numerics
 				_value = 1; _scale = 0; _precision = 256; _flags = inf; return;
 			}
 
+			// TODO: Figure out how convert the large double scales
+
 			this = new BigDecimal((decimal)value);
 		}
 
@@ -588,6 +590,14 @@ namespace System.Numerics
 		}
 
 		public static BigDecimal Truncate(BigDecimal value) => Truncate(value, 0);
+
+		/// <summary>
+		/// Truncates the BigDecimal by its precision.
+		/// </summary>
+		internal void TruncatePrecision()
+		{
+			this = Truncate(this, _precision);
+		}
 
 		public static BigDecimal Truncate(BigDecimal value, BigInteger digits)
 		{

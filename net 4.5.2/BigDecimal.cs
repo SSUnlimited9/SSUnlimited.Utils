@@ -818,38 +818,8 @@ namespace System.Numerics
 
 		public static BigDecimal Modulo(BigDecimal dividend, BigDecimal divisor)
 		{
-			// Start of checks that checks if the stuff is good
-
-			if (dividend._precision.IsZero)
-				throw new ZeroPrecisionException();
-
-			if ((IsPositiveInfinity(dividend) && IsPositiveInfinity(divisor)) || (IsNegativeInfinity(dividend) && IsNegativeInfinity(divisor)))
-				return new BigDecimal(1, 0, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = inf };
-
-			if ((IsNegativeInfinity(dividend) && IsPositiveInfinity(divisor)) || (IsPositiveInfinity(dividend) && IsNegativeInfinity(divisor)))
-				return new BigDecimal(-1, 0, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = inf };
-
-			if (IsNaN(dividend) || IsNaN(divisor))
+			if (IsNaNOrInfinity(dividend) || IsNaNOrInfinity(divisor))
 				return new BigDecimal(1, 0, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = nan };
-
-			if (IsInfinity(dividend) && !IsInfinity(divisor))
-				return new BigDecimal(dividend._value, dividend._scale, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = dividend._flags };
-
-			if (!IsInfinity(dividend) && IsInfinity(divisor))
-				return new BigDecimal(divisor._value, divisor._scale, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = divisor._flags };
-
-			BigDecimal[] values = new BigDecimal[] { dividend, divisor };
-			values[0].Normalize();
-			values[1].Normalize();
-
-			if (values[0]._value.IsZero && values[1]._value.IsZero)
-				return new BigDecimal(1, 0, values[0]._precision) { _flags = nan };
-			
-			if (values[0]._value.Sign >= 0 && values[1]._value.IsZero)
-				return new BigDecimal(1, 0, values[0]._precision) { _flags = inf };
-
-			if (values[0]._value.Sign < 0 && values[1]._value.IsZero)
-				return new BigDecimal(-1, 0, values[0]._precision) { _flags = inf };
 
 			// End of checks that checks if stuff is good
 
@@ -889,6 +859,20 @@ namespace System.Numerics
 		public static bool operator >=(BigDecimal left, BigDecimal right) => left.CompareTo(right) >= 0;
 		public static bool operator <(BigDecimal left, BigDecimal right) => left.CompareTo(right) < 0;
 		public static bool operator <=(BigDecimal left, BigDecimal right) => left.CompareTo(right) <= 0;
+
+		// Conversion
+		public static implicit operator BigDecimal(sbyte value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(byte value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(short value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(ushort value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(int value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(uint value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(long value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(ulong value) => new BigDecimal(value, 0, 256);
+		public static implicit operator BigDecimal(BigInteger value) => new BigDecimal(value, 0, 256);
+		public static explicit operator BigDecimal(float value) => new BigDecimal(value);
+		public static explicit operator BigDecimal(double value) => new BigDecimal(value);
+		public static implicit operator BigDecimal(decimal value) => new BigDecimal(value);
 		#endregion
 	}
 

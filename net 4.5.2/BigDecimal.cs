@@ -381,42 +381,27 @@ namespace System.Numerics
 			// Check if the fractional part is already normalized.
 			if (fraction % 10 != 0)
 			{
-				Console.WriteLine("Fractional part is already normalized.");
 				// Fractional part is already normalized.
 				return;
 			}
 
-			// Lets create a simple variable for testing how much the fraction needs to be divided by.
-			BigInteger testingValue = fraction;
+			BigInteger reScale = _scale;
 
-			// Lets do the process of dividing the testingValue by 10 ^ i then multiplying by 10 ^ i until the value is missing a digit
-			// Then thats when we know, we found our "normalized" mantissa.
-			for (BigInteger i = 1; i < _scale; i++)
+			while (fraction % 10 == 0)
 			{
-				testingValue /= 10;
-
-				if (testingValue * SMath.Pow(10, i) != fraction)
-				{
-					// We've found the point where the testingValue lost a digit
-					BigInteger newValue = fraction / SMath.Pow(10, i - 1);
-
-					if (div.IsZero)
-					{
-						// Whole value of the Mantissa doesnt exist.
-						_value = newValue * _value.Sign;
-						_scale = _scale - i + 1;
-						return;
-					}
-					else
-					{
-						// Whole value of the Mantissa does exist.
-						_value = div * SMath.Pow(10, _scale - i + 1) + newValue * _value.Sign;
-						_scale = _scale - i + 1;
-						return;
-					}
-				}
+				fraction /= 10;
+				reScale--;
 			}
 
+			if (reScale.IsZero)
+			{
+				_value = div * _value.Sign;
+				_scale = 0;
+				return;
+			}
+
+			_value = (div * SMath.Pow(10, reScale) + fraction) * _value.Sign;
+			_scale = reScale;
 		}
 
 		/// <summary>
@@ -581,8 +566,28 @@ namespace System.Numerics
 							return new BigDecimal(whole * value._value.Sign, 0, value._precision);
 					}
 				}
+
+			Console.WriteLine(value);
 			
-			
+			// Make it so we can just do an EASIER calculation.
+			value = Truncate(value, digits + 2);
+
+			Console.WriteLine(value);
+
+			whole = BigInteger.DivRem(BigInteger.Abs(value._value), SMath.Pow(10, value._scale), out fraction);
+
+			// throw new NotImplementedException();
+
+			switch (mode)
+			{
+				case MidpointRounding.ToEven:
+					if (fraction >= (SMath.Pow(10, value._scale - 1) * 6))
+						return new BigDecimal(((whole) * SMath.Pow(10, value._scale) + fraction) * value.Sign, value._scale--, value._precision);
+
+					if (fraction >= (SMath.Pow(10, value._scale - 1) * 6))
+						return new BigDecimal((whole + 1) * value._value.Sign, 0, value._precision);
+					return new BigDecimal(whole * value._value.Sign, 0, value._precision);
+			}
 
 			return BigDecimal.Zero;
 		}

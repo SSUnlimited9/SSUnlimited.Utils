@@ -16,7 +16,7 @@ namespace System.Numerics
 		// All these are needed for BigDecimal to function properly.
 		internal BigInteger _value; // The true unscaled value (is the Mantissa).
 		internal BigInteger _scale; // Where the decimal point is.
-		internal BigInteger _precision; // How many digits are allowed over the decimal (mainly used for recursive operations like Divide).
+		internal BigInteger _precision; // How many digits are allowed (maximum) over the decimal (mainly used for recursive operations like Divide).
 		private byte _flags; // NaN, Inf, -Inf... thats all you need to know.
 		#endregion
 
@@ -693,6 +693,8 @@ namespace System.Numerics
 
 		public static BigDecimal Divide(BigDecimal dividend, BigDecimal divisor)
 		{
+			// Start of checks that checks if the stuff is good
+
 			if (dividend._precision.IsZero)
 				throw new ZeroPrecisionException();
 
@@ -724,7 +726,89 @@ namespace System.Numerics
 			if (values[0]._value.Sign < 0 && values[1]._value.IsZero)
 				return new BigDecimal(-1, 0, values[0]._precision) { _flags = inf };
 
-			return new BigDecimal(dividend._value, dividend._scale, dividend._precision);
+			// End of checks that checks if stuff is good
+
+			dividend.Normalize();
+			divisor.Normalize();
+
+			// -- Divide operation loop --
+			// (Mostly written by https://github.com/KtheVeg)
+
+			bool resultNegative = dividend._value.Sign != divisor._value.Sign;
+			// Division follows a simple rule: if the signs are different, the result is negative. 
+			// The operations are carried out otherwise in the same way
+
+			dividend._value = BigInteger.Abs(dividend._value);
+			divisor._value = BigInteger.Abs(divisor._value);
+			// Now that we have the proper signs, we can work with the absolute values of the
+			// numbers. Since the operations will be the exact same, we can just work with the
+			// numbers as if they're positive.
+
+			// Math is fun. precalulus courses are fun...
+
+			BigDecimal output = BigDecimal.Zero;
+			output._precision = dividend._precision; // :)
+
+			Console.WriteLine("Function Executed!");
+			Console.WriteLine(dividend);
+			Console.WriteLine(divisor);
+
+			while (BigDecimal.Subtract(dividend, divisor) >= BigDecimal.Zero) 
+			{
+				Console.WriteLine("Did an int-pass loop");
+				dividend = BigDecimal.Subtract(dividend, divisor);
+				output._value++;
+				
+			}
+
+			// When the dividend is less than the divisor, we have the integer part of the result.
+
+			// -- Decimal Calculation loop --
+			// Here, the decimal will be calculated by multiplying the dividend mantissa by 10,
+			// adding 1 to scale, and then subtracting the divisor from the dividend until the
+			// needed precision is reached. If we somehow go over, we'll use the truncate method
+			// to get the number in the right boundry.
+
+			
+			BigInteger repeatCount = 0;
+			while (output._scale < output._precision)
+			{
+				repeatCount++;
+				Console.WriteLine($"---- ITERATION {repeatCount} ----");
+				Console.WriteLine("Did an decimal-pass loop");
+				BigInteger timesSubtractedThisRun = 0; // This will be added on-top of the current mantissa, as scale increases
+				
+				// Expand the mantissa (and scale) until we have enough room to fit the divisor
+				for (BigInteger i=0; i < divisor.MantissaLength; i++)
+				{
+					Console.WriteLine("Did For-Loop Pass");
+					dividend = dividend * BigDecimal.Ten;
+					output._scale++;
+					output._value *= 10;
+				}
+				Console.WriteLine("1: " + dividend);
+				while ((dividend - divisor) >= BigDecimal.Zero) 
+				{
+					Console.WriteLine("Did Second int-Sub pass");
+					dividend = dividend - divisor;
+					timesSubtractedThisRun++;
+				}
+				
+				Console.WriteLine("2: " + dividend);
+				output._value += timesSubtractedThisRun;
+				Console.WriteLine("3: " + output);
+				if (dividend == BigDecimal.Zero) break;
+			}
+			
+			
+
+			// Truncate the output to fit within the precision limitations
+			output.TruncatePrecision();
+
+			if (resultNegative) output = new BigDecimal(0, 0, output._precision) - output;
+
+			return output;
+			// return new BigDecimal(dividend._value, dividend._scale, dividend._precision);
 		}
 
 		public static BigDecimal Negate(BigDecimal value) => new BigDecimal(-value._value, value._scale, value._precision) { _flags = value._flags };
@@ -737,6 +821,7 @@ namespace System.Numerics
 		public static BigDecimal operator -(BigDecimal left, BigDecimal right) => Subtract(left, right);
 		public static BigDecimal operator --(BigDecimal value) => Subtract(value, One);
 		public static BigDecimal operator *(BigDecimal left, BigDecimal right) => Multiply(left, right);
+		public static BigDecimal operator /(BigDecimal left, BigDecimal right) => Divide(left, right);
 		
 		// Comparison
 		public static bool operator ==(BigDecimal left, BigDecimal right) => left.Equals(right);

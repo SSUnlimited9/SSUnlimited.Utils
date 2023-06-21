@@ -563,9 +563,7 @@ namespace System.Numerics
 			if (fraction == 0)
 				return value;
 
-			BigInteger getLength = SMath.GetLength(fraction);
-
-			if (getLength < digits)
+			if (value._scale < digits)
 				return value;
 
 			if (digits.IsZero)
@@ -584,7 +582,7 @@ namespace System.Numerics
 					}
 				}
 			
-			BigInteger reScale = value._scale;
+			
 
 			return BigDecimal.Zero;
 		}
@@ -730,6 +728,23 @@ namespace System.Numerics
 		}
 
 		public static BigDecimal Negate(BigDecimal value) => new BigDecimal(-value._value, value._scale, value._precision) { _flags = value._flags };
+		#endregion
+
+		#region Operator overloads
+		// Arithmetic
+		public static BigDecimal operator +(BigDecimal left, BigDecimal right) => Add(left, right);
+		public static BigDecimal operator ++(BigDecimal value) => Add(value, One);
+		public static BigDecimal operator -(BigDecimal left, BigDecimal right) => Subtract(left, right);
+		public static BigDecimal operator --(BigDecimal value) => Subtract(value, One);
+		public static BigDecimal operator *(BigDecimal left, BigDecimal right) => Multiply(left, right);
+		
+		// Comparison
+		public static bool operator ==(BigDecimal left, BigDecimal right) => left.Equals(right);
+		public static bool operator !=(BigDecimal left, BigDecimal right) => !left.Equals(right);
+		public static bool operator >(BigDecimal left, BigDecimal right) => left.CompareTo(right) > 0;
+		public static bool operator >=(BigDecimal left, BigDecimal right) => left.CompareTo(right) >= 0;
+		public static bool operator <(BigDecimal left, BigDecimal right) => left.CompareTo(right) < 0;
+		public static bool operator <=(BigDecimal left, BigDecimal right) => left.CompareTo(right) <= 0;
 		#endregion
 	}
 

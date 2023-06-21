@@ -811,6 +811,59 @@ namespace System.Numerics
 			// return new BigDecimal(dividend._value, dividend._scale, dividend._precision);
 		}
 
+		public static BigDecimal Modulo(BigDecimal dividend, BigDecimal divisor)
+		{
+			// Start of checks that checks if the stuff is good
+
+			if (dividend._precision.IsZero)
+				throw new ZeroPrecisionException();
+
+			if ((IsPositiveInfinity(dividend) && IsPositiveInfinity(divisor)) || (IsNegativeInfinity(dividend) && IsNegativeInfinity(divisor)))
+				return new BigDecimal(1, 0, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = inf };
+
+			if ((IsNegativeInfinity(dividend) && IsPositiveInfinity(divisor)) || (IsPositiveInfinity(dividend) && IsNegativeInfinity(divisor)))
+				return new BigDecimal(-1, 0, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = inf };
+
+			if (IsNaN(dividend) || IsNaN(divisor))
+				return new BigDecimal(1, 0, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = nan };
+
+			if (IsInfinity(dividend) && !IsInfinity(divisor))
+				return new BigDecimal(dividend._value, dividend._scale, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = dividend._flags };
+
+			if (!IsInfinity(dividend) && IsInfinity(divisor))
+				return new BigDecimal(divisor._value, divisor._scale, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = divisor._flags };
+
+			BigDecimal[] values = new BigDecimal[] { dividend, divisor };
+			values[0].Normalize();
+			values[1].Normalize();
+
+			if (values[0]._value.IsZero && values[1]._value.IsZero)
+				return new BigDecimal(1, 0, values[0]._precision) { _flags = nan };
+			
+			if (values[0]._value.Sign >= 0 && values[1]._value.IsZero)
+				return new BigDecimal(1, 0, values[0]._precision) { _flags = inf };
+
+			if (values[0]._value.Sign < 0 && values[1]._value.IsZero)
+				return new BigDecimal(-1, 0, values[0]._precision) { _flags = inf };
+
+			// End of checks that checks if stuff is good
+
+			bool negativeOutput = dividend < BigDecimal.Zero;
+
+			dividend._value = BigInteger.Abs(dividend._value);
+			divisor._value = BigInteger.Abs(divisor._value);
+
+			while (BigDecimal.Subtract(dividend, divisor) >= BigDecimal.Zero) 
+			{
+				Console.WriteLine("Did an int-pass loop");
+				dividend = BigDecimal.Subtract(dividend, divisor);
+			}
+
+			if (negativeOutput) dividend = new BigDecimal(0, 0, dividend._precision) - dividend;
+
+			return dividend;
+		}
+
 		public static BigDecimal Negate(BigDecimal value) => new BigDecimal(-value._value, value._scale, value._precision) { _flags = value._flags };
 		#endregion
 
@@ -822,6 +875,7 @@ namespace System.Numerics
 		public static BigDecimal operator --(BigDecimal value) => Subtract(value, One);
 		public static BigDecimal operator *(BigDecimal left, BigDecimal right) => Multiply(left, right);
 		public static BigDecimal operator /(BigDecimal left, BigDecimal right) => Divide(left, right);
+		public static BigDecimal operator %(BigDecimal left, BigDecimal right) => Modulo(left, right);
 		
 		// Comparison
 		public static bool operator ==(BigDecimal left, BigDecimal right) => left.Equals(right);

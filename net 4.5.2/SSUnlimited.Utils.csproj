@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net452</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<RootNamespace></RootNamespace>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<DefineConstants>JSON_SERIALIZE</DefineConstants>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<GeneratedAssemblyInfoFile>Properties\AssemblyInfo.cs</GeneratedAssemblyInfoFile>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	</PropertyGroup>
+		
+	<ItemGroup>
+		<Compile Include="SSUnlimited.Utils\BigDecimal.cs" />
+		<Compile Include="SSUnlimited.Utils\BigDecimalFormatter.cs" />
+		<Compile Include="SSUnlimited.Utils\BigVectorInt.cs" />
+		<Compile Include="SSUnlimited.Utils\Extensions\DictionaryExtensions.cs" />
+		<Compile Include="SSUnlimited.Utils\Extensions\ListExtensions.cs" />
+		<Compile Include="SSUnlimited.Utils\Infinity.cs" />
+		<Compile Include="SSUnlimited.Utils\IRandom.cs" />
+		<Compile Include="SSUnlimited.Utils\SMath.cs" />
+		<Compile Include="SSUnlimited.Utils\SUtils.cs" />
+	</ItemGroup>
+	
+</Project>

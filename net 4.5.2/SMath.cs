@@ -140,6 +140,107 @@ namespace SSUnlimited.Utils
 		}
 		#endregion
 
+		#region Length
+		/// <summary>
+		/// Returns the length of a sbyte value.
+		/// </summary>
+		public static sbyte GetLength(sbyte value)
+		{
+			sbyte length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of a byte value.
+		/// </summary>
+		public static byte GetLength(byte value)
+		{
+			byte length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of a short value.
+		/// </summary>
+		public static short GetLength(short value)
+		{
+			short length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of a ushort value.
+		/// </summary>
+		public static ushort GetLength(ushort value)
+		{
+			ushort length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of an int value.
+		/// </summary>
+		public static int GetLength(int value)
+		{
+			int length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of a uint value.
+		/// </summary>
+		public static uint GetLength(uint value)
+		{
+			uint length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of a long value.
+		/// </summary>
+		public static long GetLength(long value)
+		{
+			long length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of a ulong value.
+		/// </summary>
+		public static ulong GetLength(ulong value)
+		{
+			ulong length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+
+		/// <summary>
+		/// Returns the length of a BigInteger value.
+		/// </summary>
+		public static BigInteger GetLength(BigInteger value)
+		{
+			BigInteger length = 0;
+			while (value != 0)
+			{ value /= 10; length++; }
+			return length;
+		}
+		// TODO: Add float, double and decimal
+		#endregion
 		public const decimal PI = 3.141592653589793238462643383279502884197169399375105820974944592307816406286m;
 		// public static decimal Acos(decimal value)
 		// {

@@ -27,7 +27,7 @@ namespace System.Numerics
 			string valueStr = BigInteger.Abs(value._value).ToString();
 			StringBuilder stringBuilder = new StringBuilder((value._value < 0) ? "-" : string.Empty);
 
-			if (valueStr.Length > value._scale)
+			if (value.MantissaLength > value._scale)
 			{
 				// Get both the whole number and the fraction
 				BigInteger wholeNum = BigInteger.DivRem(BigInteger.Abs(value._value), SMath.Pow(10, value._scale), out BigInteger fraction);
@@ -49,7 +49,7 @@ namespace System.Numerics
 
 			stringBuilder.Append("0.");
 
-			BigInteger zeros = value._scale - (BigInteger)valueStr.Length;
+			BigInteger zeros = value._scale - value.MantissaLength;
 
 			for (BigInteger i = 0; i < zeros; i++)
 				stringBuilder.Append('0');

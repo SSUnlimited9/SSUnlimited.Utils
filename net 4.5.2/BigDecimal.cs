@@ -2,6 +2,7 @@ using SSUnlimited.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace System.Numerics
 {
@@ -526,8 +527,18 @@ namespace System.Numerics
 			return values[0]._value == values[1]._value;
 		}
 
-		// Temporary, ADD IT DAMNIT
-		public override int GetHashCode() => 0;
+		public override int GetHashCode()
+		{
+			if (IsNaN(this))
+				return _flags ^ unchecked(0x7FFF0004);
+
+			if (IsInfinity(this))
+				return _flags ^ (Sign == -1 ? -83164 : -935726);
+
+			return _value.GetHashCode() ^ _scale.GetHashCode(); 
+
+			//(((h1 << 5) + h1) ^ h2);
+		}
 
 		public override string ToString() => BigDecimalFormatter.Format(this, null, null);
 
@@ -537,21 +548,62 @@ namespace System.Numerics
 		#endregion
 
 		#region Mathimatical methods
-		public static BigDecimal Truncate(BigDecimal value, BigInteger digits)
+		public static BigDecimal Round(BigDecimal value, BigInteger digits, MidpointRounding mode)
 		{
 			if (digits < 0)
 				throw new ArgumentOutOfRangeException(nameof(digits), "Value must be greater than or equal to 0");
 
-			if (IsNaNOrInfinity(value) || value.Equals(Zero))
-			{
-				Console.WriteLine("NaN or Infinity or Zero");
+			if (IsNaNOrInfinity(value) || value.Equals(Zero) || value._scale.IsZero)
 				return value;
-			}
 
 			BigInteger whole = BigInteger.DivRem(BigInteger.Abs(value._value), SMath.Pow(10, value._scale), out BigInteger fraction);
 
 			if (fraction == 0)
 				return value;
+
+			BigInteger getLength = SMath.GetLength(fraction);
+
+			if (getLength < digits)
+				return value;
+
+			if (digits.IsZero)
+				{
+					switch (mode)
+					{
+						case MidpointRounding.ToEven:
+							if (fraction >= (SMath.Pow(10, value._scale - 1) * 6))
+								return new BigDecimal((whole + 1) * value._value.Sign, 0, value._precision);
+							return new BigDecimal(whole * value._value.Sign, 0, value._precision);
+
+						case MidpointRounding.AwayFromZero:
+							if (fraction >= (SMath.Pow(10, value._scale - 1) * 5))
+								return new BigDecimal((whole + 1) * value._value.Sign, 0, value._precision);
+							return new BigDecimal(whole * value._value.Sign, 0, value._precision);
+					}
+				}
+			
+			BigInteger reScale = value._scale;
+
+			return BigDecimal.Zero;
+		}
+
+		public static BigDecimal Truncate(BigDecimal value) => Truncate(value, 0);
+
+		public static BigDecimal Truncate(BigDecimal value, BigInteger digits)
+		{
+			if (digits < 0)
+				throw new ArgumentOutOfRangeException(nameof(digits), "Value must be greater than or equal to 0");
+
+			if (IsNaNOrInfinity(value) || value.Equals(Zero) || value._scale.IsZero)
+				return value;
+
+			BigInteger whole = BigInteger.DivRem(BigInteger.Abs(value._value), SMath.Pow(10, value._scale), out BigInteger fraction);
+
+			if (fraction == 0)
+				return value;
+
+			if (digits == 0)
+				return new BigDecimal(whole * value._value.Sign, 0, value._precision);
 
 			BigInteger reScale = value._scale;
 
@@ -562,62 +614,14 @@ namespace System.Numerics
 					reScale--;
 				}
 
-			return new BigDecimal(whole * SMath.Pow(10, reScale) + fraction, reScale, value._precision);
+			while (reScale > digits)
+			{
+				fraction /= 10;
+				reScale--;
+			}
 
-			// return BigDecimal.Zero;
+			return new BigDecimal((whole * SMath.Pow(10, reScale) + fraction) * value._value.Sign, reScale, value._precision);
 		}
-		// public static BigDecimal Round(BigDecimal value, BigInteger digits, MidpointRounding mode)
-		// {
-		// 	if (IsNaNOrInfinity(value))
-		// 		// Not a valid "proper" number sooooo nope.
-		// 		return value;
-
-		// 	if (digits < 0)
-		// 		throw new ArgumentOutOfRangeException(nameof(digits), "Value must be greater than or equal to 0");
-
-		// 	if (value.Equals(Zero) || digits == 0)
-		// 		// No point in trying to round a zero.
-		// 		return value;
-
-		// 	if (digits > value._precision)
-		// 		// Can't exactly round digits that don't exist.
-		// 		return value;
-
-		// 	BigInteger whole = BigInteger.DivRem(BigInteger.Abs(value._value), SMath.Pow(10, value._scale), out BigInteger fraction);
-
-		// 	if (fraction == 0 || fraction < SMath.Pow(10, value._scale - digits))
-		// 		// No point in rounding if the fraction is already 0 or the digits to round are less than the fraction.
-		// 		return value;
-
-		// 	switch (mode)
-		// 	{
-		// 		case MidpointRounding.AwayFromZero:
-					
-
-		// 			throw new NotImplementedException();
-		// 			break;
-
-		// 		default:
-		// 			throw new NotImplementedException();
-		// 			break;
-		// 	}
-
-
-		// 	return BigDecimal.Zero;
-		// }
-
-		// public static BigDecimal Truncate(BigDecimal value, BigInteger digits)
-		// {
-		// 	if (IsNaNOrInfinity(value) || value.Equals(Zero))
-		// 		// Can't truncate a NaN or Infinity. Also no point in truncating a zero.
-		// 		return value;
-
-		// 	if (digits < 0)
-		// 		throw new ArgumentOutOfRangeException(nameof(digits), "Value must be greater than or equal to 0");
-			
-		// 	if (digits > value._precision)
-				// return value;
-		// }
 		#endregion
 
 		#region Arithmetic methods

@@ -227,9 +227,9 @@ namespace System.Numerics
 			_flags = 0;
 		}
 
-		public BigDecimal(int mantissa) => this = new BigDecimal(mantissa, 0, 256);
+		public BigDecimal(int mantissa) => this = new BigDecimal(mantissa, 0, 64);
 
-		public BigDecimal(int mantissa, int exponent) => this = new BigDecimal(mantissa, exponent, 256);
+		public BigDecimal(int mantissa, int exponent) => this = new BigDecimal(mantissa, exponent, 64);
 
 		public BigDecimal(int mantissa, int exponent, int precision)
 		{
@@ -244,9 +244,9 @@ namespace System.Numerics
 			_flags = 0;
 		}
 
-		public BigDecimal(long mantissa) => this = new BigDecimal(mantissa, 0, 256);
+		public BigDecimal(long mantissa) => this = new BigDecimal(mantissa, 0, 64);
 
-		public BigDecimal(long mantissa, long exponent) => this = new BigDecimal(mantissa, exponent, 256);
+		public BigDecimal(long mantissa, long exponent) => this = new BigDecimal(mantissa, exponent, 64);
 
 		public BigDecimal(long mantissa, long exponent, long precision)
 		{
@@ -261,9 +261,9 @@ namespace System.Numerics
 			_flags = 0;
 		}
 
-		public BigDecimal(BigInteger mantissa) => this = new BigDecimal(mantissa, 0, 256);
+		public BigDecimal(BigInteger mantissa) => this = new BigDecimal(mantissa, 0, 64);
 
-		public BigDecimal(BigInteger mantissa, BigInteger exponent) => this = new BigDecimal(mantissa, exponent, 256);
+		public BigDecimal(BigInteger mantissa, BigInteger exponent) => this = new BigDecimal(mantissa, exponent, 64);
 
 		public BigDecimal(BigInteger mantissa, BigInteger exponent, BigInteger precision)
 		{
@@ -282,17 +282,17 @@ namespace System.Numerics
 		{
 			if (double.IsNaN(value))
 			{
-				_value = 1; _scale = 0; _precision = 256; _flags = nan; return;
+				_value = 1; _scale = 0; _precision = 64; _flags = nan; return;
 			}
 
 			if (double.IsNegativeInfinity(value))
 			{
-				_value = -1; _scale = 0; _precision = 256; _flags = inf; return;
+				_value = -1; _scale = 0; _precision = 64; _flags = inf; return;
 			}
 
 			if (double.IsPositiveInfinity(value))
 			{
-				_value = 1; _scale = 0; _precision = 256; _flags = inf; return;
+				_value = 1; _scale = 0; _precision = 64; _flags = inf; return;
 			}
 
 			// TODO: Figure out how convert the large double scales
@@ -317,7 +317,7 @@ namespace System.Numerics
 
 			_value = sign < 0 ? ~mantissa + 1 : mantissa;
 			_scale = (uint)(bits[3] & 0x00FF0000) >> 16; // Get the scale of the decimal value (which is stored in the 16th to 20th bit (around that range)).
-			_precision = 256;
+			_precision = 64;
 			_flags = 0;
 		}
 		#endregion
@@ -361,14 +361,14 @@ namespace System.Numerics
 		/// </summary>
 		internal void Normalize()
 		{
-			BigInteger div = BigInteger.DivRem(BigInteger.Abs(_value), SMath.Pow(10, _scale), out BigInteger fraction);
-		
 			if (_value.IsZero || _scale.IsZero || IsNaNOrInfinity(this))
 			{
 				// Value is zero or has no fractional part.
 				_scale = 0;
 				return;
 			}
+
+			BigInteger div = BigInteger.DivRem(BigInteger.Abs(_value), SMath.Pow(10, _scale), out BigInteger fraction);
 
 			if (fraction.IsZero && _scale > 0)
 			{
@@ -380,10 +380,8 @@ namespace System.Numerics
 
 			// Check if the fractional part is already normalized.
 			if (fraction % 10 != 0)
-			{
 				// Fractional part is already normalized.
 				return;
-			}
 
 			BigInteger reScale = _scale;
 
@@ -391,13 +389,6 @@ namespace System.Numerics
 			{
 				fraction /= 10;
 				reScale--;
-			}
-
-			if (reScale.IsZero)
-			{
-				_value = div * _value.Sign;
-				_scale = 0;
-				return;
 			}
 
 			_value = (div * SMath.Pow(10, reScale) + fraction) * _value.Sign;
@@ -438,9 +429,8 @@ namespace System.Numerics
 
 		public int CompareTo(BigDecimal other)
 		{
-			// Match scales now.
-			BigDecimal[] values = new BigDecimal[] { this, other };
-			MatchScale(ref values[0], ref values[1]);
+			TruncatePrecision();
+			Normalize();
 
 			// Lets check the flags first.
 			if (IsNaN(this) || IsNaN(other))
@@ -451,12 +441,13 @@ namespace System.Numerics
 				// Our Infinity is bigger than the other Infinity.
 				if (_value.Sign >= 0 && other._value.Sign < 0)
 					return 1;
+
 				// Our Infinity is smaller than the other Infinity.
-				else if (_value.Sign < 0 && other._value.Sign >= 0)
+				if (_value.Sign < 0 && other._value.Sign >= 0)
 					return -1;
+
 				// Both Infinities are the same.
-				else 
-					return 0;
+				return 0;
 			}
 
 			if (IsInfinity(this) && !IsInfinity(other))
@@ -465,16 +456,27 @@ namespace System.Numerics
 			if (!IsInfinity(this) && IsInfinity(other))
 				return -other._value.Sign;
 
+			// Match scales now.
+			MatchScale(ref this, ref other);
+
 			// Compare the values
 			if (_value > other._value)
+			{
+				TruncatePrecision();
+				Normalize();
 				return 1;
+			}
 
 			if (_value < other._value)
+			{
+				TruncatePrecision();
+				Normalize();
 				return -1;
+			}
 
+			TruncatePrecision();
+			Normalize();
 			return 0;
-
-			// TODO: add support for flags
 		}
 
 		public override bool Equals(object? obj)
@@ -487,6 +489,9 @@ namespace System.Numerics
 
 		public bool Equals(BigDecimal other)
 		{
+			TruncatePrecision();
+			Normalize();
+
 			// Check flags first.
 			if (IsNaN(this) || IsNaN(other))
 				return false;
@@ -496,26 +501,26 @@ namespace System.Numerics
 				// Our Infinity is bigger than the other Infinity.
 				if (_value.Sign >= 0 && other._value.Sign < 0)
 					return false;
+
 				// Our Infinity is smaller than the other Infinity.
-				else if (_value.Sign < 0 && other._value.Sign >= 0)
+				if (_value.Sign < 0 && other._value.Sign >= 0)
 					return false;
-				// Both Infinities are the same.
-				else 
-					return true;
+
+				// Both Infinities are the same. 
+				return true;
 			}
 
 			if ((IsInfinity(this) && !IsInfinity(other)) || (!IsInfinity(this) && IsInfinity(other)))
 				return false;
-
-			// Match scales now.
-			BigDecimal[] values = new BigDecimal[] { this, other };
-			MatchScale(ref values[0], ref values[1]);
-
-			return values[0]._value == values[1]._value;
+			
+			return _value == other._value && _scale == other._scale;
 		}
 
 		public override int GetHashCode()
 		{
+			TruncatePrecision();
+			Normalize();
+
 			if (IsNaN(this))
 				return _flags ^ unchecked(0x7FFF0004);
 
@@ -534,9 +539,27 @@ namespace System.Numerics
 		public string ToString(string? format, IFormatProvider? provider) => BigDecimalFormatter.Format(this, format, provider);
 		#endregion
 
+		#region Static methods
+		public int Compare(BigDecimal x, BigDecimal y) => x.CompareTo(y);
+
+		public bool Equals(BigDecimal x, BigDecimal y) => x.Equals(y);
+
+		// public bool TryParse(string value, out BigDecimal result) => BigDecimalFormatter.TryParse() 
+		#endregion
+
 		#region Mathimatical methods
+		public static BigDecimal Abs(BigDecimal value)
+		{
+			value.TruncatePrecision();
+			value.Normalize();
+			return new BigDecimal(BigInteger.Abs(value._value), value._scale, value._precision) { _flags = value._flags };
+		}
+
 		public static BigDecimal Round(BigDecimal value, BigInteger digits, MidpointRounding mode)
 		{
+			value.TruncatePrecision();
+			value.Normalize();
+
 			if (digits < 0)
 				throw new ArgumentOutOfRangeException(nameof(digits), "Value must be greater than or equal to 0");
 
@@ -550,53 +573,31 @@ namespace System.Numerics
 
 			if (value._scale < digits)
 				return value;
-
-			if (digits.IsZero)
-				{
-					switch (mode)
-					{
-						case MidpointRounding.ToEven:
-							if (fraction >= (SMath.Pow(10, value._scale - 1) * 6))
-								return new BigDecimal((whole + 1) * value._value.Sign, 0, value._precision);
-							return new BigDecimal(whole * value._value.Sign, 0, value._precision);
-
-						case MidpointRounding.AwayFromZero:
-							if (fraction >= (SMath.Pow(10, value._scale - 1) * 5))
-								return new BigDecimal((whole + 1) * value._value.Sign, 0, value._precision);
-							return new BigDecimal(whole * value._value.Sign, 0, value._precision);
-					}
-				}
-
-			Console.WriteLine(value);
 			
 			// Make it so we can just do an EASIER calculation.
-			value = Truncate(value, digits + 2);
-
-			Console.WriteLine(value);
+			value = Truncate(value, digits + 1);
 
 			whole = BigInteger.DivRem(BigInteger.Abs(value._value), SMath.Pow(10, value._scale), out fraction);
 
-			// throw new NotImplementedException();
+			// get the last digit of the fraction
+			BigInteger lastDigit = fraction % 10;
 
 			switch (mode)
 			{
-				case MidpointRounding.ToEven:
-					if (fraction >= (SMath.Pow(10, value._scale - 1) * 6))
-						return new BigDecimal(((whole) * SMath.Pow(10, value._scale) + fraction) * value.Sign, value._scale--, value._precision);
-
-					if (fraction >= (SMath.Pow(10, value._scale - 1) * 6))
-						return new BigDecimal((whole + 1) * value._value.Sign, 0, value._precision);
-					return new BigDecimal(whole * value._value.Sign, 0, value._precision);
+				default:
+					if (lastDigit >= 6)
+						return new BigDecimal((whole * SMath.Pow(10, value._scale - 1)) + fraction / 10 + 1, value._scale - 1, value._precision);
+					return new BigDecimal((whole * SMath.Pow(10, value._scale - 1)) + fraction / 10, value._scale - 1, value._precision);
+				
+				case MidpointRounding.AwayFromZero:
+					if (lastDigit >= 5)
+						return new BigDecimal((whole * SMath.Pow(10, value._scale - 1)) + fraction / 10 + 1, value._scale - 1, value._precision);
+					return new BigDecimal((whole * SMath.Pow(10, value._scale - 1)) + fraction / 10, value._scale - 1, value._precision);
 			}
-
-			return BigDecimal.Zero;
 		}
 
 		public static BigDecimal Truncate(BigDecimal value) => Truncate(value, 0);
 
-		/// <summary>
-		/// Truncates the BigDecimal by its precision.
-		/// </summary>
 		internal void TruncatePrecision()
 		{
 			this = Truncate(this, _precision);
@@ -607,7 +608,7 @@ namespace System.Numerics
 			if (digits < 0)
 				throw new ArgumentOutOfRangeException(nameof(digits), "Value must be greater than or equal to 0");
 
-			if (IsNaNOrInfinity(value) || value.Equals(Zero) || value._scale.IsZero)
+			if (IsNaNOrInfinity(value) || value._value.IsZero || value._scale.IsZero)
 				return value;
 
 			BigInteger whole = BigInteger.DivRem(BigInteger.Abs(value._value), SMath.Pow(10, value._scale), out BigInteger fraction);
@@ -794,7 +795,7 @@ namespace System.Numerics
 				Console.WriteLine("1: " + dividend);
 				while ((dividend - divisor) >= BigDecimal.Zero) 
 				{
-					Console.WriteLine("Did Second int-Sub pass");
+					Console.WriteLine("Did Second int-Sub pass " + dividend + " " + timesSubtractedThisRun);
 					dividend = dividend - divisor;
 					timesSubtractedThisRun++;
 				}
@@ -809,6 +810,7 @@ namespace System.Numerics
 
 			// Truncate the output to fit within the precision limitations
 			output.TruncatePrecision();
+			output.Normalize();
 
 			if (resultNegative) output = new BigDecimal(0, 0, output._precision) - output;
 
@@ -816,12 +818,10 @@ namespace System.Numerics
 			// return new BigDecimal(dividend._value, dividend._scale, dividend._precision);
 		}
 
-		public static BigDecimal Modulo(BigDecimal dividend, BigDecimal divisor)
+		public static BigDecimal Remainder(BigDecimal dividend, BigDecimal divisor)
 		{
 			if (IsNaNOrInfinity(dividend) || IsNaNOrInfinity(divisor))
 				return new BigDecimal(1, 0, BigInteger.Max(dividend._precision, divisor._precision)) { _flags = nan };
-
-			// End of checks that checks if stuff is good
 
 			bool negativeOutput = dividend < BigDecimal.Zero;
 
@@ -843,14 +843,134 @@ namespace System.Numerics
 		#endregion
 
 		#region Operator overloads
+		#region Conversions
+		public static implicit operator BigDecimal(byte value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(sbyte value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(short value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(ushort value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(int value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(uint value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(long value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(ulong value) => new BigDecimal(value, 0, 64);
+
+		public static implicit operator BigDecimal(BigInteger value) => new BigDecimal(value, 0, 64);
+
+		public static explicit operator BigDecimal(float value) => new BigDecimal(value);
+
+		public static explicit operator BigDecimal(double value) => new BigDecimal(value);
+
+		public static implicit operator BigDecimal(decimal value) => new BigDecimal(value);
+
+		// Conversion to other types
+		public static explicit operator byte(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > byte.MaxValue || truncated < byte.MinValue)
+				return (byte)0;
+			return (byte)truncated;
+		}
+
+		public static explicit operator sbyte(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > sbyte.MaxValue || truncated < sbyte.MinValue)
+				return (sbyte)0;
+			return (sbyte)truncated;
+		}
+
+		public static explicit operator short(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > short.MaxValue || truncated < short.MinValue)
+				return (short)0;
+			return (short)truncated;
+		}
+
+		public static explicit operator ushort(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > ushort.MaxValue || truncated < ushort.MinValue)
+				return (ushort)0;
+			return (ushort)truncated;
+		}
+
+		public static explicit operator int(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > int.MaxValue || truncated < int.MinValue)
+				return (int)0;
+			return (int)truncated;
+		}
+
+		public static explicit operator uint(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > uint.MaxValue || truncated < uint.MinValue)
+				return (uint)0;
+			return (uint)truncated;
+		}
+
+		public static explicit operator long(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > long.MaxValue || truncated < long.MinValue)
+				return (long)0;
+			return (long)truncated;
+		}
+
+		public static explicit operator ulong(BigDecimal value)
+		{
+			BigInteger truncated = Truncate(value)._value;
+			if (truncated > ulong.MaxValue || truncated < ulong.MinValue)
+				return (ulong)0;
+			return (ulong)truncated;
+		}
+
+		public static explicit operator BigInteger(BigDecimal value) => Truncate(value)._value;
+
+		// TODO: Add float and double
+
+		public static explicit operator decimal(BigDecimal value)
+		{
+			value = Truncate(value, 28);
+			byte[] bytes = value._value.ToByteArray();
+
+			int lo = 0; int mid = 0; int hi = 0;
+
+			int i = 0;
+
+			foreach(byte b in bytes)
+			{
+				if (i < 4)
+					lo |= b << (i * 8);
+				else if (i < 8)
+					mid |= b << ((i - 4) * 8);
+				else if (i < 12)
+					hi |= b << ((i - 8) * 8);
+				else
+					break;
+				i++;
+			}
+
+			return new decimal(lo, mid, hi, value.Sign == -1 ? true : false, (byte)value._scale);
+		}
+		#endregion
+
 		// Arithmetic
 		public static BigDecimal operator +(BigDecimal left, BigDecimal right) => Add(left, right);
 		public static BigDecimal operator ++(BigDecimal value) => Add(value, One);
 		public static BigDecimal operator -(BigDecimal left, BigDecimal right) => Subtract(left, right);
 		public static BigDecimal operator --(BigDecimal value) => Subtract(value, One);
 		public static BigDecimal operator *(BigDecimal left, BigDecimal right) => Multiply(left, right);
-		public static BigDecimal operator /(BigDecimal left, BigDecimal right) => Divide(left, right);
-		public static BigDecimal operator %(BigDecimal left, BigDecimal right) => Modulo(left, right);
+		public static BigDecimal operator /(BigDecimal dividend, BigDecimal divisor) => Divide(dividend, divisor);
+		public static BigDecimal operator %(BigDecimal dividend, BigDecimal divisor) => Remainder(dividend, divisor);
 		
 		// Comparison
 		public static bool operator ==(BigDecimal left, BigDecimal right) => left.Equals(right);
@@ -859,20 +979,6 @@ namespace System.Numerics
 		public static bool operator >=(BigDecimal left, BigDecimal right) => left.CompareTo(right) >= 0;
 		public static bool operator <(BigDecimal left, BigDecimal right) => left.CompareTo(right) < 0;
 		public static bool operator <=(BigDecimal left, BigDecimal right) => left.CompareTo(right) <= 0;
-
-		// Conversion
-		public static implicit operator BigDecimal(sbyte value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(byte value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(short value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(ushort value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(int value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(uint value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(long value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(ulong value) => new BigDecimal(value, 0, 256);
-		public static implicit operator BigDecimal(BigInteger value) => new BigDecimal(value, 0, 256);
-		public static explicit operator BigDecimal(float value) => new BigDecimal(value);
-		public static explicit operator BigDecimal(double value) => new BigDecimal(value);
-		public static implicit operator BigDecimal(decimal value) => new BigDecimal(value);
 		#endregion
 	}
 

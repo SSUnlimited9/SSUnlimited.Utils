@@ -6,7 +6,7 @@ namespace System.Collections.Generic
 		/// Adds the specified key and value to the dictionary if the key does not already exist.
 		/// </summary>
 		/// <returns><c>true</c> if the key was added; otherwise, <c>false</c>.</returns>
-		public static bool TryAdd<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key, TValue value)
+		public static bool TryAdd<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key, TValue value) where TKey : notnull
 		{
 			// This method exists in later versions of .NET but why not bring it to an older version.
 			if (key == null)
@@ -18,7 +18,7 @@ namespace System.Collections.Generic
 			return true;
 		}
 		
-		public static TValue GetOrAdd<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key, TValue value)
+		public static TValue GetOrAdd<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key, TValue value) where TKey : notnull
 		{
 			if (key == null)
 				throw new ArgumentNullException(nameof(key));

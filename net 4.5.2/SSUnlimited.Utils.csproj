@@ -2,7 +2,7 @@
 	
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net452</TargetFramework>
+		<TargetFrameworks>net452;net47</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<RootNamespace></RootNamespace>
 		<ImplicitUsings>disable</ImplicitUsings>

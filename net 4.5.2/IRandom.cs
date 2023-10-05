@@ -10,20 +10,20 @@ namespace SSUnlimited.Utils
 	{
 		// 0x00 = Always get seed from internal clock
 		// 0x01 = Seed is from user (but also use internal clock)
-		private static byte _state = 0x00;
-		private static long _seed = DateTime.Now.Ticks;
+		// private static byte _state = 0x00;
+		// private static long _seed = DateTime.Now.Ticks;
 
-		public static void ResetState()
-		{
-			_state = 0x00;
-			_seed = DateTime.Now.Ticks;
-		}
+		// public static void ResetState()
+		// {
+		// 	_state = 0x00;
+		// 	_seed = DateTime.Now.Ticks;
+		// }
 
-		public static void SetState(long seed)
-		{
-			_state = 0x01;
-			_seed = seed;
-		}
+		// public static void SetState(long seed)
+		// {
+		// 	_state = 0x01;
+		// 	_seed = seed;
+		// }
 	}
 
 	/// <summary>
